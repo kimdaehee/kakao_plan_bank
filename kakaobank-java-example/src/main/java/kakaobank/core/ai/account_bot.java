@@ -35,6 +35,7 @@ public class account_bot {
 		  //랜덤으로 돌리기위한 계좌 배열 선언
 		  ArrayList<String> account_list = new ArrayList<String>();
 		  
+		  
 		  Properties configs = new Properties();
 		  configs.put("bootstrap.servers", "localhost:9092");
 		  configs.put("acks", "all");
@@ -224,12 +225,14 @@ public class account_bot {
 		        	//계좌가 1개 이상 있어야하고, 계좌번호와 이체대상번호가 같지않아야 함
 		        	if(account_list.size() > 1){
 		        		
-		        		String target_account_number = account_list.get(rndRange(0,account_list.size()));
-		        		
-		        		if(!account_number.equals(target_account_number)){
-		        			//40건의 계좌이체를 진행한다.
-					        for(int a=0; a<40; a++){
-					        	//account_list
+
+	        			//40건의 계좌이체를 진행한다.
+				        for(int a=0; a<40; a++){
+				        	
+				        	String target_account_number = account_list.get(rndRange(0,account_list.size()-1));
+				        	
+				        	if(!acc_number.equals(target_account_number)){
+				        		//account_list
 					        	
 					        	int[] cash = {1000, 10000, 100000, 200000};//4개중 랜덤
 								
@@ -271,9 +274,8 @@ public class account_bot {
 								    });
 								  producer.flush();
 								  producer.close();
-								
-					        }
-		        		}
+			        		}
+				        }
 		        	}
 		        	customer_number++;
 		        }
