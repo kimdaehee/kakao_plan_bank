@@ -11,19 +11,30 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
 
-import kakaobank.core.s1.main.account_info;
+
+
+
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-public class account_bot {
+public class producer {
 	
 	public static int rndRange(int min, int max) {
 
 		return (int) (Math.random() * (max - min + 1)) + min;
 
+	}
+	
+	public static class  account_info implements Cloneable{
+		public int customer_number;
+		public String name;
+		public String join_dt;
+		public String account_number;
+		public String create_dt;
+		public int balance;
 	}
 	
 	private static FileOutputStream account_kakao; //계정 계좌 정보
@@ -37,12 +48,12 @@ public class account_bot {
 		  
 		  
 		  Properties configs = new Properties();
-		  configs.put("bootstrap.servers", "localhost:9092");
-		  configs.put("acks", "all");
-		  configs.put("block.on.buffer.full", "true");
-		  configs.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-		  configs.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-
+	      configs.put("bootstrap.servers", "localhost:9092"); // kafka host 및 server 설정
+	      configs.put("acks", "all");                         // 자신이 보낸 메시지에 대해 카프카로부터 확인을 기다리지 않습니다.
+	      configs.put("block.on.buffer.full", "true");        // 서버로 보낼 레코드를 버퍼링 할 때 사용할 수 있는 전체 메모리의 바이트수
+	      configs.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");   // serialize 설정
+	      configs.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer"); // serialize 설정
+	 
 		  int custom_num = 0;
 		  
 		  @SuppressWarnings("rawtypes")
@@ -58,8 +69,8 @@ public class account_bot {
 				
 				String topic = "kakaobank";
 				
-				KafkaProducer<String, String> producer = new KafkaProducer<>(configs);
-	
+				//KafkaProducer<String, String> producer = new KafkaProducer<>(configs);
+				KafkaProducer<String, String> producer = new KafkaProducer<String, String>(configs);
 				//계정정보를 생성한다.
 				
 				account_js_object = new JSONObject();
@@ -97,14 +108,8 @@ public class account_bot {
 				
 				String sendMessage = complete_account.toJSONString();
 				
-				producer.send(new ProducerRecord<>(topic, sendMessage),
-						(metadata, exception) -> {
-							if (metadata != null) {
-								System.out.println("partition(" + metadata.partition() + "), offset(" + metadata.offset() + ")");
-							} else {
-								exception.printStackTrace();
-							}
-						});
+				producer.send(new ProducerRecord<String, String>(topic, sendMessage));
+				
 				producer.flush();
 				producer.close();
 				
@@ -168,18 +173,11 @@ public class account_bot {
 						
 						sendMessage =  complete_account.toJSONString();
 						
-						producer = new KafkaProducer<>(configs);
-
-						  producer.send(new ProducerRecord<>(topic, sendMessage),
-						    (metadata, exception) -> {
-						      if (metadata != null) {
-						        System.out.println( "partition(" + metadata.partition() + "), offset(" + metadata.offset() + ")");
-						      } else {
-						        exception.printStackTrace();
-						      }
-						    });
-						  producer.flush();
-						  producer.close();
+						producer = new KafkaProducer<String, String>(configs);
+						
+						producer.send(new ProducerRecord<String, String>(topic, sendMessage));
+						producer.flush();
+						producer.close();
 					}
 		        	
 		        	//고객마다 출금을 30개씩 아래의 랜덤값을 통해 로그 제작
@@ -207,16 +205,9 @@ public class account_bot {
 						
 						sendMessage =  complete_account.toJSONString();
 						
-						producer = new KafkaProducer<>(configs);
+						producer = new KafkaProducer<String, String>(configs);
 
-						  producer.send(new ProducerRecord<>(topic, sendMessage),
-						    (metadata, exception) -> {
-						      if (metadata != null) {
-						        System.out.println("partition(" + metadata.partition() + "), offset(" + metadata.offset() + ")");
-						      } else {
-						        exception.printStackTrace();
-						      }
-						    });
+						producer.send(new ProducerRecord<String, String>(topic, sendMessage));
 						  producer.flush();
 						  producer.close();
 					}
@@ -249,6 +240,7 @@ public class account_bot {
 								
 								account_js_object.put("user_code", customer_number);
 								account_js_object.put("send_account_number", acc_number);
+								account_js_object.put("recive_bank_code", 90); //카카오뱅크90
 								account_js_object.put("recive_account_number", target_account_number);
 								account_js_object.put("recive_name", getInfo.name);
 								account_js_object.put("amount", amount);
@@ -262,18 +254,11 @@ public class account_bot {
 								
 								sendMessage =  complete_account.toJSONString();
 								
-								producer = new KafkaProducer<>(configs);
+								producer = new KafkaProducer<String, String>(configs);
 
-								  producer.send(new ProducerRecord<>(topic, sendMessage),
-								    (metadata, exception) -> {
-								      if (metadata != null) {
-								        System.out.println("partition(" + metadata.partition() + "), offset(" + metadata.offset() + ")");
-								      } else {
-								        exception.printStackTrace();
-								      }
-								    });
-								  producer.flush();
-								  producer.close();
+								producer.send(new ProducerRecord<String, String>(topic, sendMessage));
+								producer.flush();
+								producer.close();
 			        		}
 				        }
 		        	}

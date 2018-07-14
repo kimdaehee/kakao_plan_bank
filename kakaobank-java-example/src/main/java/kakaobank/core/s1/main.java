@@ -1,154 +1,315 @@
 package kakaobank.core.s1;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Random;
+import java.util.Arrays;
+import java.util.Properties;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class main {
+	public static Connection connection(String dbFileName) throws ClassNotFoundException, SQLException
+    {
+            Class.forName("org.sqlite.JDBC");
+            String url = "jdbc:sqlite:/"+dbFileName;
+            Connection conn = DriverManager.getConnection(url);
+            return conn;
+    }
 	
-	public static class  account_info implements Cloneable{
-		public int customer_number;
-		public String name;
-		public String join_dt;
-		public String account_number;
-		public String create_dt;
-		public int balance;
+	@SuppressWarnings("resource")
+	public static void main(String[] args) throws ParseException, NumberFormatException, SQLException, ClassNotFoundException, InterruptedException {
+		
+		String dbName = "/home/kakaobank_project/DataBase/kakaoDB.db";
+		
+		Properties configs = new Properties();
+        // 환경 변수 설정
+        configs.put("bootstrap.servers", "localhost:9092");     // kafka server host 및 port
+        configs.put("session.timeout.ms", "10000");             // session 설정
+        configs.put("group.id", "kakaobank");                // topic 설정
+        configs.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");    // key deserializer
+        configs.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");  // value deserializer
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(configs);    // consumer 생성
+        consumer.subscribe(Arrays.asList("kakaobank"));      // topic 설정
+        while (true) {  // 계속 loop를 돌면서 producer의 message를 띄운다.
+            ConsumerRecords<String, String> records = consumer.poll(500);
+            for (ConsumerRecord<String, String> record : records) {
+                String s = record.topic();
+                if ("kakaobank".equals(s)) {
+                    System.out.println(record.value());
+                    System.out.println("value : " + record.value());
+		        	//{"message":[{"account_number":"3333020","amount":-1000000,"datetime":"2018-07-14 12:57:52","customer_number":0}],"category":"withdrawals"}
+		        	 
+		        	JSONObject theKaKao = null;
+        			JSONArray kakaoArray = null;
+        			JSONParser kakaoJsParser = new JSONParser(); 
+        			
+		        	String jsonData = record.value();
+		        	
+		        	theKaKao = (JSONObject) kakaoJsParser.parse(jsonData);
+		        	kakaoArray = (JSONArray) theKaKao.get("message");
+		        	String kakaoCategory = theKaKao.get("category").toString();
+		        	
+		        	
+		        	//System.out.println("catecory : " + kakaoCategory);
+		        	
+					/*switch (kakaoCategory) {
+					case "account":
+						System.out.println("account value : " + record.value());
+						break;
+					case "deposits":
+						System.out.println("deposits value : " + record.value());
+						break;
+					case "withdrawals":
+						System.out.println("withdrawals value : " + record.value());
+						break;
+					case "transfers":
+						System.out.println("transfers value : " + record.value());
+						break;
+					}*/
+					
+		        	
+		        	if(kakaoCategory.equals("account")){
+		        		//회원가입 및 계좌 계설
+		        		
+		        		for (int i = 0; i < kakaoArray.size(); i++)
+			        	{
+		        			JSONObject account_date = (JSONObject) kakaoArray.get(i);
+		        			
+		        			Connection con = null;
+		        	        PreparedStatement stmt = null;
+		        	        
+		        			if (con == null)
+		        				con = connection(dbName);
+		        			
+		        			try {
+		        				stmt = con.prepareStatement(String.format("INSERT INTO %s(customer_number, name, join_dt, account_number, create_dt, balance) VALUES(?, ?, ?, ?, ?, ?)", "account"));
+
+		        				stmt.setInt(1, Integer.parseInt(account_date.get("customer_number").toString()));
+		        				stmt.setString(2, account_date.get("name").toString());
+		        				stmt.setString(3, account_date.get("join_dt").toString());
+		        				stmt.setString(4, account_date.get("account_number").toString());
+		        				stmt.setString(5, account_date.get("create_dt").toString());
+		        				stmt.setInt(6, Integer.parseInt(account_date.get("balance").toString()));
+		        				stmt.executeUpdate();
+		        			} finally {
+		        				try {
+		        					if (stmt != null) {
+		        						stmt.close();
+		        					}
+		        				} catch (Exception e) {
+		        					System.out.println("stmt null error");
+		        				}
+		        				try {
+		        					if (con != null) {
+		        						con.close();
+		        					}
+		        				} catch (Exception e) {
+		        					System.out.println("con null error");
+		        				}
+		        			}
+			        	}
+		        		
+		        	}else if(kakaoCategory.equals("deposits")){
+		        		//입금
+		        		for (int i = 0; i < kakaoArray.size(); i++)
+			        	{
+		        			JSONObject account_date = (JSONObject) kakaoArray.get(i);
+		        			
+		        			Connection con = null;
+		        	        PreparedStatement stmt = null;
+		        	        ResultSet rs = null;
+		        	        
+		        	        int user_cash = 0;
+		        	        
+		        			if (con == null)
+		        				con = connection(dbName);
+		        			
+		        			try {
+		        				stmt = con.prepareStatement(String.format("INSERT INTO %s(customer_number, account_number, amount, datetime) VALUES(?, ?, ?, ?)", "deposits"));
+		        				stmt.setInt(1, Integer.parseInt(account_date.get("customer_number").toString()));
+		        				stmt.setString(2, account_date.get("account_number").toString());
+		        				stmt.setInt(3, Integer.parseInt(account_date.get("amount").toString()));
+		        				stmt.setString(4, account_date.get("datetime").toString());
+		        				stmt.executeUpdate();
+		        				
+		        				//입금에 대한 계산
+		        				stmt = con.prepareStatement("select balance from account where account_number = ?");
+		        				stmt.setString(1, account_date.get("account_number").toString());
+		        				rs = stmt.executeQuery();
+		        				
+		        				while(rs.next()){
+		        					user_cash = rs.getInt("balance");
+		        				}
+		        				
+		        				stmt = con.prepareStatement("update account set balance=? where account_number=?");
+		        				stmt.setInt(1, user_cash + Integer.parseInt(account_date.get("amount").toString()));
+		        				stmt.setString(2, account_date.get("account_number").toString());
+		        				stmt.executeUpdate();
+		        				
+		        			} finally {
+		        				try {
+		        					if (stmt != null) {
+		        						stmt.close();
+		        					}
+		        				} catch (Exception e) {
+		        					System.out.println("stmt null error");
+		        				}
+		        				try {
+		        					if (con != null) {
+		        						con.close();
+		        					}
+		        				} catch (Exception e) {
+		        					System.out.println("con null error");
+		        				}
+		        			}
+			        	}
+		        	}else if(kakaoCategory.equals("withdrawals")){
+		        		//출금
+		        		for (int i = 0; i < kakaoArray.size(); i++)
+			        	{
+		        			JSONObject account_date = (JSONObject) kakaoArray.get(i);
+		        			
+		        			Connection con = null;
+		        	        PreparedStatement stmt = null;
+		        	        ResultSet rs = null;
+		        	        
+		        	        int user_cash = 0;
+		        	        
+		        			if (con == null)
+		        				con = connection(dbName);
+		        			
+		        			try {
+		        				stmt = con.prepareStatement(String.format("INSERT INTO %s(user_code, account_number, amount, datetime) VALUES(?, ?, ?, ?)", "withdrawals"));
+		        				stmt.setInt(1, Integer.parseInt(account_date.get("customer_number").toString()));
+		        				stmt.setString(2, account_date.get("account_number").toString());
+		        				stmt.setInt(3, Integer.parseInt(account_date.get("amount").toString()));
+		        				stmt.setString(4, account_date.get("datetime").toString());
+		        				stmt.executeUpdate();
+		        				
+		        				//출금에 대한 계산
+		        				stmt = con.prepareStatement("select balance from account where account_number = ?");
+		        				stmt.setString(1, account_date.get("account_number").toString());
+		        				rs = stmt.executeQuery();
+		        				
+		        				while(rs.next()){
+		        					user_cash = rs.getInt("balance");
+		        				}
+		        				
+		        				stmt = con.prepareStatement("update account set balance=? where account_number=?");
+		        				stmt.setInt(1, user_cash - Integer.parseInt(account_date.get("amount").toString()));
+		        				stmt.setString(2, account_date.get("account_number").toString());
+		        				stmt.executeUpdate();
+		        				
+		        			} finally {
+		        				try {
+		        					if (stmt != null) {
+		        						stmt.close();
+		        					}
+		        				} catch (Exception e) {
+		        					System.out.println("stmt null error");
+		        				}
+		        				try {
+		        					if (con != null) {
+		        						con.close();
+		        					}
+		        				} catch (Exception e) {
+		        					System.out.println("con null error");
+		        				}
+		        			}
+			        	}
+		        	}else if(kakaoCategory.equals("transfers")){
+		        		//계좌이체
+		        		for (int i = 0; i < kakaoArray.size(); i++)
+			        	{
+		        			JSONObject account_date = (JSONObject) kakaoArray.get(i);
+		        			
+		        			Connection con = null;
+		        	        PreparedStatement stmt = null;
+		        	        ResultSet rs = null;
+		        	        
+		        	        int send_user_cash = 0;
+		        	        int recive_user_cash = 0;
+		        	        
+		        			if (con == null)
+		        				con = connection(dbName);
+		        			
+		        			try {
+		        				stmt = con.prepareStatement(String.format("INSERT INTO %s(user_code, send_account_number, recive_bank_code, recive_account_number, recive_name, amount, datetime) VALUES(?, ?, ?, ?, ?, ?, ?)", "transfers"));
+		        				stmt.setInt(1, Integer.parseInt(account_date.get("user_code").toString()));
+		        				stmt.setString(2, account_date.get("send_account_number").toString());
+		        				stmt.setInt(3, Integer.parseInt(account_date.get("recive_bank_code").toString()));
+		        				stmt.setString(4, account_date.get("recive_account_number").toString());
+		        				stmt.setString(5, account_date.get("recive_name").toString());
+		        				stmt.setInt(6, Integer.parseInt(account_date.get("amount").toString()));
+		        				stmt.setString(7, account_date.get("datetime").toString());
+		        				stmt.executeUpdate();
+		        				
+		        				//자금이체에 대한 계산
+		        				stmt = con.prepareStatement("select balance from account where account_number = ?");
+		        				stmt.setString(1, account_date.get("send_account_number").toString());
+		        				rs = stmt.executeQuery();
+		        				
+		        				while(rs.next()){
+		        					send_user_cash = rs.getInt("balance");
+		        				}
+		        				
+		        				stmt = con.prepareStatement("select balance from account where account_number = ?");
+		        				stmt.setString(1, account_date.get("recive_account_number").toString());
+		        				rs = stmt.executeQuery();
+		        				
+		        				while(rs.next()){
+		        					recive_user_cash = rs.getInt("balance");
+		        				}
+		        				
+		        				//보내는사람쪽은 마이너스
+		        				stmt = con.prepareStatement("update account set balance=? where account_number=?");
+		        				stmt.setInt(1, send_user_cash + Integer.parseInt(account_date.get("amount").toString()));
+		        				stmt.setString(2, account_date.get("send_account_number").toString());
+		        				stmt.executeUpdate();
+		        				
+		        				//받는사람쪽은 마이너스
+		        				stmt = con.prepareStatement("update account set balance=? where account_number=?");
+		        				stmt.setInt(1, recive_user_cash + Integer.parseInt(account_date.get("amount").toString()));
+		        				stmt.setString(2, account_date.get("recive_account_number").toString());
+		        				stmt.executeUpdate();
+		        				
+		        				
+		        			} finally {
+		        				try {
+		        					if (stmt != null) {
+		        						stmt.close();
+		        					}
+		        				} catch (Exception e) {
+		        					System.out.println("stmt null error");
+		        				}
+		        				try {
+		        					if (con != null) {
+		        						con.close();
+		        					}
+		        				} catch (Exception e) {
+		        					System.out.println("con null error");
+		        				}
+		        			}
+			        	}
+		        		
+		        		
+		        	}else{
+		        		//nothing//
+		        	}
+                } else {
+                    throw new IllegalStateException("get message on topic " + record.topic());
+                }
+            }
+        } 
 	}
-	
-	public static class  deposits_info implements Cloneable{
-		public int amount;
-		public String datetime;
-	}
-	
-	
-	private static FileInputStream namestream;
-	private static FileOutputStream account_kakao; //계정 계좌 정보
-	
-	
-	public static int rndRange(int min, int max) {
-
-		return (int) (Math.random() * (max - min + 1)) + min;
-
-	}
-	
-	@SuppressWarnings({ "unchecked", "unused" })
-	public static void main(String[] args) throws IOException, ClassNotFoundException, SQLException{
-
-		String account_list = "D:\\git_workspace\\git\\kakao_plan_bank\\kakaobank-java-example\\DataBase\\account_list.kakao";
-		
-		//결과 FileDB(json)
-		String acc_DB = "D:\\git_workspace\\git\\kakao_plan_bank\\kakaobank-java-example\\DataBase\\account.kakao";
-		
-
-		 //최초파일사이즈였을때만 해당루틴 진입
-		//2.각각의 고객에 대해 100건 내외의 금융거래정보를 생성하고 Kafka를 통해 금융거래정보 로그를 전송하는 Producer 프로그램을 Java로 작성
-		namestream = new FileInputStream(account_list); //임의의 고객명
-		
-		
-		DataInputStream in = new DataInputStream(namestream);
-		BufferedReader br = new BufferedReader(new InputStreamReader(new DataInputStream(in), "utf-8"));
-		
-		String strLine;
-		
-		int custom_num = 0;
-		
-		JSONObject complete_account = new JSONObject();
-		JSONArray make_account = new JSONArray();
-		
-		HashMap account_db = new HashMap();
-		
-		while ((strLine = br.readLine()) != null) {
-			//1.가입을 진행한다. (a. 모든 고객의 금융거래정보는 가입 로그부터 시작함)
-			
-			JSONObject account_js_object = new JSONObject();
-			
-			String joinDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-			String createDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-			
-			
-			account_js_object.put("customer_number", custom_num);
-			account_js_object.put("name", strLine);
-			account_js_object.put("join_dt", joinDate);
-			account_js_object.put("account_number", String.format("333302%d", custom_num));
-			account_js_object.put("create_dt", createDate);
-			//account_js_object.put("balance", 100000); //최초금액은 10만원을 지급한다.
-			
-			account_info ainfo = new account_info();
-			ainfo.customer_number = custom_num;
-			ainfo.name = strLine;
-			ainfo.join_dt = joinDate;
-			ainfo.account_number = String.format("333302%d", custom_num);
-			ainfo.create_dt = createDate;
-			//ainfo.balance = 100000;
-			
-			if(!account_db.containsKey(ainfo.account_number)){
-				account_db.put(ainfo.account_number, ainfo);
-			}
-			
-			make_account.add(account_js_object);
-			custom_num++;
-		}
-		in.close();
-		br.close();
-		
-		complete_account = new JSONObject();
-		complete_account.put("account_list", make_account);//배열을k 넣음
-		complete_account.put("account_count", custom_num);
-        
-		String LastRule = complete_account.toJSONString();
-        
-		account_kakao = new FileOutputStream(acc_DB); //스트림으로 파일 생성
-		account_kakao.write(LastRule.getBytes("utf-8"));
-		account_kakao.close();
-		
-		
-		//(*)각각의고객에 100내외의 금융거래정보를 생성한다.(입금30번,출근30번, 이체30번)
-		
-		
-		//입금
-		Iterator<String> keys = account_db.keySet().iterator();
-        while( keys.hasNext() ){
-        	String account_number = keys.next();
-        	
-        	account_info ainfo = (account_info) account_db.get(account_number);
-        	
-        	//고객마다 입금을 30개씩 아래의 랜덤값을 통해 로그 제작
-        	for(int a=0; a<30; a++){
-				int[] cash = {1000, 10000, 100000, 1000000};//4개중 랜덤
-				
-				int amount = cash[rndRange(0,3)];
-				
-				ainfo.balance += amount;
-				
-				JSONObject account_js_object = new JSONObject();
-				
-				//System.out.println(amount);
-			}
-        	
-        	System.out.println(ainfo.balance);
-        }
-		
-		
-		
-		//3.랜덤을 이용하여 입금 출금, 특정인(랜덤)에게 이체(*이체는 사전계좌가 무조건 존재하여야만 함)하여 로그기록을 남긴다. (sqlite) - c. 입금,출금,이체 대상이 되는 계좌는 사전에 계좌개설이 반드시 이루어져야 함
-		//4.해당로그는 kafka producer을 이용하여 곧바로 전송한다.
-		
-	}
-
 }
