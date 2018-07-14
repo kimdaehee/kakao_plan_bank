@@ -17,7 +17,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class main {
+public class profiler {
 	public static Connection connection(String dbFileName) throws ClassNotFoundException, SQLException
     {
             Class.forName("org.sqlite.JDBC");
