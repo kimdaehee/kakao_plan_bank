@@ -18,13 +18,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class profiler {
-	public static Connection connection(String dbFileName) throws ClassNotFoundException, SQLException
-    {
-            Class.forName("org.sqlite.JDBC");
-            String url = "jdbc:sqlite:/"+dbFileName;
-            Connection conn = DriverManager.getConnection(url);
-            return conn;
-    }
 	
 	@SuppressWarnings("resource")
 	public static void main(String[] args) throws ParseException, NumberFormatException, SQLException, ClassNotFoundException, InterruptedException {
@@ -89,7 +82,7 @@ public class profiler {
 		        	        PreparedStatement stmt = null;
 		        	        
 		        			if (con == null)
-		        				con = connection(dbName);
+		        				con = kakaobank.core.db.connect.connection(dbName);
 		        			
 		        			try {
 		        				stmt = con.prepareStatement(String.format("INSERT INTO %s(customer_number, name, join_dt, account_number, create_dt, balance) VALUES(?, ?, ?, ?, ?, ?)", "account"));
@@ -132,7 +125,7 @@ public class profiler {
 		        	        int user_cash = 0;
 		        	        
 		        			if (con == null)
-		        				con = connection(dbName);
+		        				con = kakaobank.core.db.connect.connection(dbName);
 		        			
 		        			try {
 		        				stmt = con.prepareStatement(String.format("INSERT INTO %s(customer_number, account_number, amount, datetime) VALUES(?, ?, ?, ?)", "deposits"));
@@ -186,7 +179,7 @@ public class profiler {
 		        	        int user_cash = 0;
 		        	        
 		        			if (con == null)
-		        				con = connection(dbName);
+		        				con = kakaobank.core.db.connect.connection(dbName);
 		        			
 		        			try {
 		        				stmt = con.prepareStatement(String.format("INSERT INTO %s(user_code, account_number, amount, datetime) VALUES(?, ?, ?, ?)", "withdrawals"));
@@ -241,7 +234,7 @@ public class profiler {
 		        	        int recive_user_cash = 0;
 		        	        
 		        			if (con == null)
-		        				con = connection(dbName);
+		        				con = kakaobank.core.db.connect.connection(dbName);
 		        			
 		        			try {
 		        				stmt = con.prepareStatement(String.format("INSERT INTO %s(user_code, send_account_number, recive_bank_code, recive_account_number, recive_name, amount, datetime) VALUES(?, ?, ?, ?, ?, ?, ?)", "transfers"));
