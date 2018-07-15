@@ -42,17 +42,15 @@ public class producer {
 	//해당모듈은 30초당 계정 1개씩 생성을한다.
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, ClassNotFoundException, SQLException, InterruptedException{
-		
-		  //랜덤으로 돌리기위한 계좌 배열 선언
 		  ArrayList<String> account_list = new ArrayList<String>();
 		  
 		  
 		  Properties configs = new Properties();
-	      configs.put("bootstrap.servers", "localhost:9092"); // kafka host 및 server 설정
-	      configs.put("acks", "all");                         // 자신이 보낸 메시지에 대해 카프카로부터 확인을 기다리지 않습니다.
-	      configs.put("block.on.buffer.full", "true");        // 서버로 보낼 레코드를 버퍼링 할 때 사용할 수 있는 전체 메모리의 바이트수
-	      configs.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");   // serialize 설정
-	      configs.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer"); // serialize 설정
+	      configs.put("bootstrap.servers", "localhost:9092");
+	      configs.put("acks", "all");
+	      configs.put("block.on.buffer.full", "true");
+	      configs.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+	      configs.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 	 
 		  int custom_num = 0;
 		  
@@ -194,7 +192,7 @@ public class producer {
 						
 						account_js_object.put("customer_number", customer_number);
 						account_js_object.put("account_number", acc_number);
-						account_js_object.put("amount", amount *(-1));
+						account_js_object.put("amount", amount);
 						account_js_object.put("datetime", datetime);
 						make_account.add(account_js_object);
 						

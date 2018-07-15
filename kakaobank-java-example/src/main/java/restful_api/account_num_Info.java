@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
+import kakaobank.core.log.TraceLog;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -31,7 +33,7 @@ public class account_num_Info {
 		});
 		
 		Spark.get(new Route("/api/customer") {
-			@SuppressWarnings({ "unchecked" })
+			@SuppressWarnings({ "unchecked", "unused" })
 			public Object handle(Request arg0, Response arg1) {
 				
 				// TODO Auto-generated method stub
@@ -144,6 +146,7 @@ public class account_num_Info {
 					
 				}catch(Exception e){
 					System.out.println("Error");
+					TraceLog.SetDebug("account_num_Info", e.toString());
 				}
 				
 				return last_new_date.toJSONString();

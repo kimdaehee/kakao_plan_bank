@@ -12,10 +12,11 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import kakaobank.core.log.*;
 
 public class profiler {
 	
@@ -25,15 +26,14 @@ public class profiler {
 		String dbName = "/home/kakaobank_project/DataBase/kakaoDB.db";
 		
 		Properties configs = new Properties();
-        // 환경 변수 설정
-        configs.put("bootstrap.servers", "localhost:9092");     // kafka server host 및 port
-        configs.put("session.timeout.ms", "10000");             // session 설정
-        configs.put("group.id", "kakaobank");                // topic 설정
-        configs.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");    // key deserializer
-        configs.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");  // value deserializer
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(configs);    // consumer 생성
-        consumer.subscribe(Arrays.asList("kakaobank"));      // topic 설정
-        while (true) {  // 계속 loop를 돌면서 producer의 message를 띄운다.
+        configs.put("bootstrap.servers", "localhost:9092");
+        configs.put("session.timeout.ms", "10000");
+        configs.put("group.id", "kakaobank");
+        configs.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        configs.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(configs);
+        consumer.subscribe(Arrays.asList("kakaobank"));
+        while (true) {
             ConsumerRecords<String, String> records = consumer.poll(500);
             for (ConsumerRecord<String, String> record : records) {
                 String s = record.topic();
@@ -100,14 +100,15 @@ public class profiler {
 		        						stmt.close();
 		        					}
 		        				} catch (Exception e) {
-		        					System.out.println("stmt null error");
+		        					TraceLog.SetDebug("profiler", "account databse insert stmt null error");
+		        					
 		        				}
 		        				try {
 		        					if (con != null) {
 		        						con.close();
 		        					}
 		        				} catch (Exception e) {
-		        					System.out.println("con null error");
+		        					TraceLog.SetDebug("profiler", "account databse insert con null error");
 		        				}
 		        			}
 			        	}
@@ -155,14 +156,14 @@ public class profiler {
 		        						stmt.close();
 		        					}
 		        				} catch (Exception e) {
-		        					System.out.println("stmt null error");
+		        					TraceLog.SetDebug("profiler", "deposits databse insert stmt null error");
 		        				}
 		        				try {
 		        					if (con != null) {
 		        						con.close();
 		        					}
 		        				} catch (Exception e) {
-		        					System.out.println("con null error");
+		        					TraceLog.SetDebug("profiler", "deposits databse insert con null error");
 		        				}
 		        			}
 			        	}
@@ -209,14 +210,14 @@ public class profiler {
 		        						stmt.close();
 		        					}
 		        				} catch (Exception e) {
-		        					System.out.println("stmt null error");
+		        					TraceLog.SetDebug("profiler", "withdrawals databse insert stmt null error");
 		        				}
 		        				try {
 		        					if (con != null) {
 		        						con.close();
 		        					}
 		        				} catch (Exception e) {
-		        					System.out.println("con null error");
+		        					TraceLog.SetDebug("profiler", "withdrawals databse insert con null error");
 		        				}
 		        			}
 			        	}
@@ -283,14 +284,14 @@ public class profiler {
 		        						stmt.close();
 		        					}
 		        				} catch (Exception e) {
-		        					System.out.println("stmt null error");
+		        					TraceLog.SetDebug("profiler", "transfers databse insert stmt null error");
 		        				}
 		        				try {
 		        					if (con != null) {
 		        						con.close();
 		        					}
 		        				} catch (Exception e) {
-		        					System.out.println("con null error");
+		        					TraceLog.SetDebug("profiler", "transfers databse insert con null error");
 		        				}
 		        			}
 			        	}

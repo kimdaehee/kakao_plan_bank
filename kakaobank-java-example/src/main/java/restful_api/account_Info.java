@@ -3,7 +3,8 @@ package restful_api;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
+
+import kakaobank.core.log.TraceLog;
 
 import org.json.simple.JSONObject;
 
@@ -51,8 +52,8 @@ public class account_Info {
 				
 				String customer_number = arg0.queryParams("customer_number");
 				
-				String dbName = "/home/kakaobank_project/DataBase/kakaoDB.db";
-				//String dbName = "C:\\kakaoDB.db";
+				//String dbName = "/home/kakaobank_project/DataBase/kakaoDB.db";
+				String dbName = "C:\\kakaoDB.db";
 				
 				JSONObject account_info_object = new JSONObject();
 				
@@ -119,6 +120,7 @@ public class account_Info {
 					
 				}catch(Exception e){
 					System.out.println("Error");
+					TraceLog.SetDebug("account_Info", e.toString());
 				}
 				
 				return account_info_object.toJSONString();
